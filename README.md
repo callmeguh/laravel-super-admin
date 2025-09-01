@@ -259,16 +259,36 @@ git push -u origin main
 
 ```
 app/
-  Http/Controllers/
-    AdminDashboardController.php
-    FinanceDashboardController.php
-    SuperadminDashboardController.php
-resources/views/
-  _admin/dashboard/index.blade.php ... index10.blade.php
-  _finance/dashboard/index.blade.php ... index10.blade.php
-  _superadmin/dashboard/index.blade.php ... index10.blade.php
+└── Http/
+│    └── Controllers/
+│         └── _admin/
+│             └── AdminDashboardController.php
+│         ├── _finance/
+│             └── FinanceDashboardController.php
+│         └──_superadmin/
+│             └── SuperadminDashboardController.php
+resources/
+└── views/
+│   └── _admin/
+│        └── dashboard/
+│            └── index.blade.php
+│            ├── index2.blade.php
+│            ├── ...
+│            └── index10.blade.php
+    ├── _finance/
+│        └── dashboard/
+│            └──index.blade.php
+│            ├── index2.blade.php
+│            ├── ...
+│            └── index10.blade.php
+    └── _superadmin/
+│        └── dashboard/
+│            └── index.blade.php
+│            ├── index2.blade.php
+│            ├── ...
+│            └── index10.blade.php
 routes/
-  web.php
+└── web.php
 ```
 
 ---
