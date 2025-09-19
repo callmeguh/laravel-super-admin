@@ -11,7 +11,7 @@ class FormsController extends Controller
         return view('forms/formLayout');
     }
     
-    public function formValidation()
+    public function formValidation(): View
     {
         return view('forms/formValidation');
     }
