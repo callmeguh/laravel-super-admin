@@ -19,34 +19,66 @@ use Illuminate\Support\Facades\Storage;
 class SuperadminDashboardController extends Controller
 {
     // ================= Dashboard =================
-    public function index()
-    {
-        $totalUsers     = User::count();
-        $newUsersLast30 = User::where('created_at', '>=', Carbon::now()->subDays(30))->count();
+public function index()
+{
+    // === Users summary ===
+    $totalUsers     = User::count();
+    $newUsersLast30 = User::where('created_at', '>=', Carbon::now()->subDays(30))->count();
 
-        $totalTransactions  = BuyTransaction::sum('total_price');
-        $transactionsLast30 = BuyTransaction::where('created_at', '>=', Carbon::now()->subDays(30))
-                                ->sum('total_price');
+    // === Transactions summary ===
+    $totalTransactions  = BuyTransaction::sum('total_price');
+    $transactionsLast30 = BuyTransaction::where('created_at', '>=', Carbon::now()->subDays(30))
+                            ->sum('total_price');
 
-        $approvedTransactions  = BuyTransaction::where('payment_status', 'approved')->count();
-        $pendingTransactions   = BuyTransaction::where('payment_status', 'pending')->count();
-        $canceledTransactions  = BuyTransaction::where('payment_status', 'declined')->count();
+    $approvedTransactions  = BuyTransaction::where('payment_status', 'approved')->count();
+    $pendingTransactions   = BuyTransaction::where('payment_status', 'pending')->count();
+    $canceledTransactions  = BuyTransaction::where('payment_status', 'declined')->count();
 
-        $deliveryTransactions = SendTransaction::count();
+    $deliveryTransactions = SendTransaction::count();
 
-        $usersByMonth = User::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
-            ->where('created_at', '>=', Carbon::now()->subMonths(12))
-            ->groupBy('month')
-            ->pluck('total', 'month');
+    // === Penitip (User role customer) per bulan ===
+    $rawCustomers = User::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+        ->where('role', 'customer')
+        ->where('created_at', '>=', Carbon::now()->subYear())
+        ->groupBy('month')
+        ->get();
 
-        $latestTransactions = BuyTransaction::with('user')->latest()->take(5)->get();
+    // === Traveler (User role traveler) per bulan ===
+    $rawTravelers = User::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+        ->where('role', 'traveler')
+        ->where('created_at', '>=', Carbon::now()->subYear())
+        ->groupBy('month')
+        ->get();
 
-        return view('_superadmin.dashboard.index', compact(
-            'totalUsers','newUsersLast30','totalTransactions','transactionsLast30',
-            'approvedTransactions','pendingTransactions','canceledTransactions',
-            'deliveryTransactions','usersByMonth','latestTransactions'
-        ));
-    }
+    // === Normalisasi 12 bulan terakhir ===
+    $usersByMonth = collect(range(1, 12))->mapWithKeys(function ($month) use ($rawCustomers, $rawTravelers) {
+        return [
+            $month => [
+                'penitip'  => $rawCustomers->firstWhere('month', $month)->total ?? 0,
+                'traveler' => $rawTravelers->firstWhere('month', $month)->total ?? 0,
+            ]
+        ];
+    });
+
+    // === Latest transactions (5 terbaru) ===
+    $latestTransactions = BuyTransaction::with(['buyer', 'traveler', 'paymentMethod'])
+                            ->latest()
+                            ->take(5)
+                            ->get();
+
+    return view('_superadmin.dashboard.index', compact(
+        'totalUsers',
+        'newUsersLast30',
+        'totalTransactions',
+        'transactionsLast30',
+        'approvedTransactions',
+        'pendingTransactions',
+        'canceledTransactions',
+        'deliveryTransactions',
+        'usersByMonth',
+        'latestTransactions'
+    ));
+}
 
     // ================= Manajemen Pengguna =================
 public function index2(Request $request)
